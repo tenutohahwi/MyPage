@@ -1,0 +1,42 @@
+[
+  {
+    "id": "gs",
+    "name": "우리동네GS",
+    "type": "출첵형",
+    "code": "",
+    "description": "25일 출석체크 시 기프티콘 증정",
+    "url": "https://abr.ge/k2m9ujr"
+  },
+  {
+    "id": "godofhealth",
+    "name": "건강의신",
+    "type": "만보기형",
+    "code": "Q49V5G",
+    "description": "",
+    "url": "https://play.google.com/store/apps/details?id=com.lemonhc.godofhealth.prod&hl=ko"
+  },
+  {
+    "id": "nhhealthcare",
+    "name": "NH헬스케어",
+    "type": "만보기형",
+    "code": "",
+    "description": "기프티콘 구매",
+    "url": "https://play.google.com/store/apps/details?id=com.nhlife.customer.healthcare&hl=ko"
+  },
+  {
+    "id": "laplay",
+    "name": "라플레이",
+    "type": "만보기형",
+    "code": "20240227332",
+    "description": "",
+    "url": "https://m.lifeplanet.co.kr:444/bridge/bm/BM07000S.dev?shareCd=20240227332"
+  },
+  {
+    "id": "hyfredit",
+    "name": "hy프레딧",
+    "type": "만보기형",
+    "code": "",
+    "description": "",
+    "url": "https://m.fredit.co.kr/member/login-form?rootId=shyknight_m@naver.com"
+  }
+]
