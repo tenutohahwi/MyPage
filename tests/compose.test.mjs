@@ -27,8 +27,8 @@ test('invalid inputs are rejected before copying',async()=>{
  for(const changes of [{url:'javascript:alert(1)'},{type:'unknown'},{action:'unknown'},{name:''},{id:'bad id'},{title:''}])await assert.rejects(()=>prepareConsole({...fixture,...changes},apps));
  await assert.rejects(()=>prepareConsole({kind:'event',title:'일정',body:'내용',remindAt:0,url:''},apps));
 });
-test('helper has a fixed Firebase console link and no direct sending or auth integration',async()=>{
+test('console fallback remains alongside the authenticated direct sender',async()=>{
  assert.equal(CONSOLE_URL,'https://console.firebase.google.com/project/littlemakes-16ea4/messaging');
- const html=await readFile(new URL('../admin/index.html',import.meta.url),'utf8'),js=await readFile(new URL('../admin/admin.js',import.meta.url),'utf8');
- assert(!html.includes('id="send"'));assert(!html.includes('Google 로그인'));assert(html.includes('콘솔 열기'));assert(!js.includes('/api/admin'));assert(!js.includes('getIdToken'));assert(!js.includes('signInWithPopup'));
+ const html=await readFile(new URL('../admin/index.html',import.meta.url),'utf8');
+ assert(html.includes('id="send"'));assert(html.includes('관리자 Google 로그인'));assert(html.includes('콘솔 열기'));
 });
