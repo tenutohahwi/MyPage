@@ -32,3 +32,9 @@ test('console fallback remains alongside the authenticated direct sender',async(
  const html=await readFile(new URL('../admin/index.html',import.meta.url),'utf8');
  assert(html.includes('id="send"'));assert(html.includes('관리자 Google 로그인'));assert(html.includes('콘솔 열기'));
 });
+test('notice preview needs no date, preserves raw body and has no calendar fields',async()=>{
+ const data={kind:'notice',eventId:'notice-preview-12345',title:'공지',body:'공지 내용',url:'https://example.com/notice'};
+ const prepared=await prepareConsole(data);
+ assert.equal(prepared.body,'[공지] 공지 내용');assert.equal(prepared.fields.notice_body,'공지 내용');assert.equal(prepared.fields.notice_id,data.eventId);
+ assert.equal(prepared.fields.event_message,undefined);assert.equal(prepared.fields.remindAt,undefined);
+});

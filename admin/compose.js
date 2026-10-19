@@ -6,7 +6,22 @@ export function linkIdentity(value){
  url.hash='';return url.href;
 }
 function text(value,max,label,required=false){if(typeof value!=='string'||value.length>max||(required&&!value.trim()))throw Error(label+'을 확인해 주세요.');return value.trim();}
+export function prepareNotice(input){
+ const title=text(input.title,80,'푸시 제목',true),body=text(input.body,6000,'푸시 내용',true),url=text(input.url??'',800,'참여 링크');
+ if(url)linkIdentity(url);
+ if(typeof input.eventId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(input.eventId))throw Error('공지 요청 번호를 확인하세요.');
+ const fields={message_type:'notice',notice_id:input.eventId,notice_title:title,notice_body:body,notice_url:url};
+ if(input.kind==='links'){
+  const candidates=[...(body.match(/https?:\/\/[^\s\p{Z}<>"']+/gu)||[]),url];
+  if(!candidates.some(value=>{try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&u.hostname&&!u.username&&!u.password;}catch{return false;}}))throw Error('본문에 HTTP(S) 링크를 넣어 주세요.');
+  fields.notice_action='links';
+ }
+ const points=Array.from(body.replace(/\s+/g,' ')),notificationBody=(input.kind==='links'?'[링크 모음] ':'[공지] ')+points.slice(0,120).join('')+(points.length>120?'…':'');
+ if(new TextEncoder().encode(body).length>24000)throw Error('공지 내용이 길어요. 본문을 줄여 주세요.');
+ return {title,body:notificationBody,fields};
+}
 export async function prepareConsole(input,apps=[],now=Date.now()){
+ if(input?.kind==='notice'||input?.kind==='links')return prepareNotice(input);
  const title=text(input.title,80,'푸시 제목',true),body=text(input.body,1000,'푸시 내용',true);
  let fields,entry,notificationBody=body;
  if(input.kind==='recommendation'){
@@ -33,6 +48,8 @@ export async function prepareConsole(input,apps=[],now=Date.now()){
   const formatted=korea.slice(2,10).replaceAll('-','')+'-'+korea.slice(11,16)+' '+body+(url?'\n'+url:'');
   fields={event_message:formatted,event_title:title};if(url)fields.url=url;
   notificationBody=formatted;
+ }else if(input.kind==='notice'){
+  return prepareNotice(input);
  }else throw Error('작성 종류를 확인해 주세요.');
  if(new TextEncoder().encode(JSON.stringify({notification:{title,body:notificationBody},data:fields})).length>3500)throw Error('내용이 길어요. 제목이나 소개를 줄여 주세요.');
  return {title,body:notificationBody,fields,entry};
