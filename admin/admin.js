@@ -1,7 +1,33 @@
 import {prepareConsole,CONSOLE_URL} from './compose.js';
+import {connectAuth} from './auth.js';
 const $=id=>document.getElementById(id);
 const editable=['app','action','type','name','url','code','description','day','time','event-url','title','body'];
 let kind='recommendation',apps=[];
+let authClient,adminAllowed=false,sending=false,pending=null,lastSignature='',requestId=crypto.randomUUID(),acceptedId='';
+function updateSend(){ $('send').disabled=!adminAllowed||sending||!pending||pending.eventId===acceptedId; }
+connectAuth(state=>{
+ adminAllowed=state.allowed;$('account-email').textContent=state.email;
+ $('login').hidden=!!state.email;$('logout').hidden=!state.email;
+ $('setup').textContent=state.allowed?'관리자 로그인 완료. 내용을 확인한 뒤 구독자에게 전송하세요.':state.email?'관리자 계정 tenutohahwi@gmail.com으로 로그인하세요.':'관리자 Google 로그인이 필요합니다. 작성·초안 저장은 로그인 전에도 사용할 수 있어요.';
+ updateSend();
+},message=>{$('setup').textContent=message;}).then(client=>{
+ authClient=client;$('login').disabled=false;
+}).catch(()=>{$('setup').textContent='로그인을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침하세요. 작성·복사는 계속 사용할 수 있습니다.';});
+$('login').onclick=()=>authClient?.login();$('logout').onclick=()=>authClient?.logout();
+$('send').onclick=async()=>{
+ if(!adminAllowed||sending||!pending)return;
+ const outgoing=pending;
+ sending=true;updateSend();$('confirm-status').textContent='발송 요청 중…';
+ try{
+  const token=await authClient.token();
+  const response=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(outgoing)});
+  const result=await response.json();if(!response.ok)throw Error(result.error||'발송 접수에 실패했어요.');
+  acceptedId=outgoing.eventId;
+  $('confirm-status').textContent='FCM 발송 접수 완료. 실제 수신은 휴대폰에서 확인하세요.';
+ }catch(e){$('confirm-status').textContent=e.message||'전송 결과 확인 필요. 재전송 전에 휴대폰 수신을 확인하세요.';}
+ finally{sending=false;updateSend();}
+};
+
 const storage={read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}}};
 const status=message=>$('status').textContent=message;
 const draftsKey='littlemakes-admin-draft-v1',appsKey='littlemakes-admin-apps-v1';
@@ -70,10 +96,12 @@ $('compose').onsubmit=async e=>{
  e.preventDefault();$('review').disabled=true;
  try{
   const data=collect(),prepared=await prepareConsole(data,apps);
+  const signature=JSON.stringify(data);if(signature!==lastSignature){requestId=crypto.randomUUID();lastSignature=signature;}
+  pending={...data,eventId:requestId};updateSend();
   renderFields(prepared);
   if(prepared.entry){apps=apps.filter(e=>e.id!==prepared.entry.id);apps.push(prepared.entry);storage.write(appsKey,apps);fillAppOptions(prepared.entry.id);}
-  $('confirm-summary').textContent='제목과 본문을 복사하고, 맞춤 데이터는 아래 항목을 한 행씩 추가하세요.';
-  $('confirm-status').textContent='내용을 복사한 뒤 콘솔 열기를 눌러 직접 전송하세요.';
+  $('confirm-summary').textContent='아래 내용이 이벤트 알림 구독자 전체에게 전달됩니다. 날짜·시각과 링크를 확인하세요.';
+  $('confirm-status').textContent=pending.eventId===acceptedId?'이미 발송 접수한 내용입니다.':adminAllowed?'확인 후 구독자에게 전송을 누르세요.':'관리자 Google 로그인 후 전송할 수 있습니다.';
   $('confirm').showModal();
  }catch(e){status(e.message);}finally{$('review').disabled=false;}
 };
