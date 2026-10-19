@@ -1,7 +1,7 @@
 import {prepareConsole,CONSOLE_URL} from './compose.js';
 import {connectAuth} from './auth.js';
 const $=id=>document.getElementById(id);
-const editable=['app','action','type','name','url','code','description','day','time','event-url','title','body'];
+const editable=['app','action','type','name','url','code','description','day','time','event-url','notice-url','links-url','title','body'];
 let kind='recommendation',apps=[];
 let authClient,adminAllowed=false,sending=false,pending=null,lastSignature='',requestId=crypto.randomUUID(),acceptedId='';
 function updateSend(){ $('send').disabled=!adminAllowed||sending||!pending||pending.eventId===acceptedId; }
@@ -32,6 +32,7 @@ const storage={read(key,fallback){try{return JSON.parse(localStorage.getItem(key
 const status=message=>$('status').textContent=message;
 const draftsKey='littlemakes-admin-draft-v1',appsKey='littlemakes-admin-apps-v1';
 function updatePreview(){
+ $('body').maxLength=['notice','links'].includes(kind)?6000:1000;
  $('preview-title').textContent=$('title').value||'추천 앱테크를 소개해요';$('preview-body').textContent=$('body').value||'작성한 푸시 내용이 여기에 표시됩니다.';
  $('preview-card').hidden=kind!=='recommendation';$('preview-type').textContent=$('action').value==='delete'?'추천 종료':$('type').value;
  $('preview-name').textContent=$('name').value||'앱 이름';$('preview-description').textContent=$('description').value;
@@ -39,13 +40,18 @@ function updatePreview(){
  const deleting=$('action').value==='delete';for(const id of ['name','type','code','description'])$(id).disabled=deleting;
 }
 function setKind(value){
- kind=value;for(const [id,target] of [['rec','recommendation'],['event','event']]){
+ kind=value;for(const [id,target] of [['rec','recommendation'],['event','event'],['notice','notice'],['links','links']]){
   $('tab-'+id).setAttribute('aria-selected',String(value===target));$('tab-'+id).tabIndex=value===target?0:-1;$('form-'+id).hidden=value!==target;
  }
  updatePreview();
 }
-$('tab-rec').onclick=()=>setKind('recommendation');$('tab-event').onclick=()=>setKind('event');
-for(const id of ['tab-rec','tab-event'])$(id).onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const target=kind==='event'?'tab-rec':'tab-event';$(target).click();$(target).focus();}};
+const tabs=['tab-rec','tab-event','tab-notice','tab-links'];
+for(const [index,target] of ['recommendation','event','notice','links'].entries())$(tabs[index]).onclick=()=>setKind(target);
+for(const [index,id] of tabs.entries())$(id).onkeydown=e=>{
+ if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();
+ const target=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+ $(tabs[target]).click();$(tabs[target]).focus();
+};
 for(const id of editable)$(id).addEventListener('input',()=>{updatePreview();});
 function fillAppOptions(selected=''){
  $('app').replaceChildren(new Option('새 앱 추가',''));
@@ -68,6 +74,8 @@ function collect(){
  if(kind==='recommendation'){
   Object.assign(data,{action:$('action').value,id:$('app').value||undefined,name:$('name').value.trim(),type:$('type').value,url:$('url').value.trim(),code:$('code').value.trim(),description:$('description').value.trim()});
   validateUrl(data.url);if(data.action==='upsert'&&!data.name)throw Error('앱 이름을 입력해 주세요.');
+ }else if(kind==='notice'||kind==='links'){
+  const url=$(kind==='links'?'links-url':'notice-url').value.trim();if(url)validateUrl(url);data.url=url;
  }else{
   const remindAt=Date.parse($('day').value+'T'+$('time').value+':00+09:00');
   if(!Number.isFinite(remindAt)||remindAt<=Date.now()||remindAt>Date.now()+365*86400000)throw Error('1년 이내의 미래 날짜·시각을 입력해 주세요.');
@@ -95,12 +103,13 @@ function renderFields(prepared){
 $('compose').onsubmit=async e=>{
  e.preventDefault();$('review').disabled=true;
  try{
-  const data=collect(),prepared=await prepareConsole(data,apps);
+  const data=collect();
   const signature=JSON.stringify(data);if(signature!==lastSignature){requestId=crypto.randomUUID();lastSignature=signature;}
-  pending={...data,eventId:requestId};updateSend();
+  const outgoing={...data,eventId:requestId},prepared=await prepareConsole(outgoing,apps);
+  pending=outgoing;updateSend();
   renderFields(prepared);
   if(prepared.entry){apps=apps.filter(e=>e.id!==prepared.entry.id);apps.push(prepared.entry);storage.write(appsKey,apps);fillAppOptions(prepared.entry.id);}
-  $('confirm-summary').textContent='아래 내용이 이벤트 알림 구독자 전체에게 전달됩니다. 날짜·시각과 링크를 확인하세요.';
+  $('confirm-summary').textContent=kind==='links'?'링크 모음을 구독자 전체에게 전송합니다. 사용자가 푸시를 누르면 네이버 링크 열기를 시작합니다. 표시 권한이 필요합니다.':kind==='notice'?'일반 공지를 구독자 전체에게 전송합니다. 예약 일정에는 등록하지 않습니다. 제목·내용·링크를 확인하세요.':'아래 내용이 이벤트 알림 구독자 전체에게 전달됩니다. 날짜·시각과 링크를 확인하세요.';
   $('confirm-status').textContent=pending.eventId===acceptedId?'이미 발송 접수한 내용입니다.':adminAllowed?'확인 후 구독자에게 전송을 누르세요.':'관리자 Google 로그인 후 전송할 수 있습니다.';
   $('confirm').showModal();
  }catch(e){status(e.message);}finally{$('review').disabled=false;}
@@ -114,7 +123,7 @@ $('save').onclick=()=>{
 $('restore').onclick=()=>{
  const draft=storage.read(draftsKey,null);if(!draft?.fields){status('저장한 초안이 없어요.');return;}
  for(const [key,value] of Object.entries(draft.fields))if(editable.includes(key)&&typeof value==='string')$(key).value=value;
- setKind(draft.kind==='event'?'event':'recommendation');status('초안을 불러왔어요. 전송 전에 내용을 확인해 주세요.');
+ setKind(['event','notice','links'].includes(draft.kind)?draft.kind:'recommendation');status('초안을 불러왔어요. 전송 전에 내용을 확인해 주세요.');
 };
 async function boot(){
  const next=new Date(Date.now()+600000+9*3600000).toISOString();$('day').value=next.slice(0,10);$('time').value=next.slice(11,16);

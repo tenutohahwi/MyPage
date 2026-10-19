@@ -3,3 +3,7 @@
 a.button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #d7dfd3;border-radius:11px;padding:11px 16px;color:#315c45;background:white;text-decoration:none;font-size:12px;font-weight:600}a.button:hover{background:#eef3e8}a.button.primary{background:#27553e;border-color:#27553e;color:white}.actions a.primary{margin-left:auto}.account a.button{min-height:38px;padding:8px 12px}
 
 .field-row>div{white-space:pre-wrap}
+
+.tabs button{font-size:13px;padding:11px 8px;word-break:keep-all}
+.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:600px){.tabs{grid-template-columns:repeat(4,minmax(0,1fr))}}
