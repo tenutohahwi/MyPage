@@ -29,6 +29,9 @@
   "functions": {
     "api/send.mjs": {
       "maxDuration": 30
+    },
+    "api/send-test.mjs": {
+      "maxDuration": 30
     }
   }
 }
