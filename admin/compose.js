@@ -10,7 +10,7 @@ export function prepareNotice(input){
  const title=text(input.title,80,'푸시 제목',true),body=text(input.body,6000,'푸시 내용',true),url=text(input.url??'',800,'참여 링크');
  if(url)linkIdentity(url);
  if(typeof input.eventId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(input.eventId))throw Error('공지 요청 번호를 확인하세요.');
- const fields={message_type:'notice',notice_id:input.eventId,notice_title:title,notice_body:body,notice_url:url};
+ const fields={app_message_type:'notice',notice_id:input.eventId,notice_title:title,notice_body:body,notice_url:url};
  if(input.kind==='links'){
   const candidates=[...(body.match(/https?:\/\/[^\s\p{Z}<>"']+/gu)||[]),url];
   if(!candidates.some(value=>{try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&u.hostname&&!u.username&&!u.password;}catch{return false;}}))throw Error('본문에 HTTP(S) 링크를 넣어 주세요.');

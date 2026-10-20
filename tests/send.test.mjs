@@ -53,9 +53,9 @@ test('notices display once and carry only notice fields, even with legacy remind
  const data={...valid(),kind:'notice',body:'991231-23:00 날짜가 포함된 일반 공지',event_message:'991231-23:00 예약 아님',endAt:Date.now()+86400000};
  const result=await message(data);
  assert.deepEqual(result.notification,{title:data.title,body:'[공지] '+data.body});
- assert.equal(result.data.message_type,'notice');assert.equal(result.data.notice_id,data.eventId);
+ assert.equal(result.data.app_message_type,'notice');assert.equal(result.data.notice_id,data.eventId);
  assert.equal(result.data.notice_title,data.title);assert.equal(result.data.notice_body,data.body);assert.equal(result.data.notice_url,data.url);
- assert.deepEqual(Object.keys(result.data).sort(),['message_type','notice_id','notice_title','notice_body','notice_url'].sort());
+ assert.deepEqual(Object.keys(result.data).sort(),['app_message_type','notice_id','notice_title','notice_body','notice_url'].sort());
  for(const key of ['eventId','remindAt','endAt','event_message','app_action'])assert.equal(result.data[key],undefined);
  assert.equal(result.android.notification.tag,'notice_'+data.eventId);assert.equal(result.android.ttl,'86400s');
  const noLink=await message({kind:'notice',eventId:data.eventId,title:'공지',body:'예약 없는 공지'});assert.equal(noLink.data.notice_url,'');
@@ -76,7 +76,7 @@ test('long link notices fit FCM via bounded gzip, with a short notification prev
 test('link pushes carry a tap action, preserve URLs and remain compatible with notice readers',async()=>{
  const body='오늘 링크\nhttps://example.com/a?eventId=one&x=2\nhttps://example.com/b';
  const result=await message({kind:'links',eventId:'links-request-123456',title:'오늘의 링크',body,url:''});
- assert.equal(result.data.message_type,'notice');assert.equal(result.data.notice_action,'links');
+ assert.equal(result.data.app_message_type,'notice');assert.equal(result.data.notice_action,'links');
  assert.equal(result.data.notice_body,body);assert.ok(result.notification.body.startsWith('[링크 모음]'));
  for(const key of ['eventId','remindAt','event_message'])assert.equal(result.data[key],undefined);
  await assert.rejects(()=>message({kind:'links',eventId:'links-request-123456',title:'링크',body:'링크 없음'}));
@@ -103,4 +103,12 @@ test('IPO reminders retain 15:00 KST alert and expire at 16:00, with safe consol
  }
  await assert.rejects(()=>message(data,remindAt));
  const legacy=await message({...valid(),remindAt},now);assert.equal(legacy.data.endAt,String(remindAt+86400000));
+});
+
+test('all FCM data keys avoid documented reserved keys, especially message_type',async()=>{
+ for(const kind of ['notice','links']){
+  const outgoing=await message({kind,eventId:'reserved-key-test-12345',title:'공지',body:'적립 https://example.com/reward'});
+  assert.equal(outgoing.data.app_message_type,'notice');assert.equal(outgoing.data.message_type,undefined);
+  for(const key of Object.keys(outgoing.data))assert.ok(!['from','message_type','gcm'].includes(key)&&!/^google\.|^gcm\./.test(key),key);
+ }
 });
