@@ -36,3 +36,16 @@ test('authorized test sends ONLY the exact supplied token; no topic/condition or
  assert.equal(result.status,503);
  assert.equal((await sendTest(req(),env)).status,200);assert.equal(calls,1);
 });
+
+test('device FCM errors expose only status codes for diagnosis and never retry',async t=>{
+ const {privateKey}=generateKeyPairSync('rsa',{modulusLength:2048});
+ const env={FIREBASE_SERVICE_ACCOUNT:JSON.stringify({project_id:'littlemakes-16ea4',client_email:'test@example.com',private_key:privateKey.export({type:'pkcs8',format:'pem'})})};
+ let calls=0;
+ t.mock.method(globalThis,'fetch',async url=>{
+  if(url.includes('accounts:lookup'))return Response.json({users:[{email:'tenutohahwi@gmail.com',emailVerified:true}]});
+  if(url.includes('oauth2.googleapis.com'))return Response.json({access_token:'fake-access-token'});
+  calls++;return Response.json({error:{status:'NOT_FOUND',message:'private token should never be echoed',details:[{'@type':'type.googleapis.com/google.firebase.fcm.v1.FcmError',errorCode:'UNREGISTERED'}]}},{status:404});
+ });
+ const response=await sendTest(req(),env);const body=await response.json();
+ assert.equal(response.status,502);assert.match(body.error,/NOT_FOUND.*UNREGISTERED/);assert.ok(!body.error.includes('private token'));assert.equal(calls,1);
+});
