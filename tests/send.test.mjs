@@ -88,3 +88,19 @@ test('link pushes carry a tap action, preserve URLs and remain compatible with n
  assert.equal(compressed.data.notice_action,'links');assert.ok(compressed.data.notice_body_gzip);assert.ok(Buffer.byteLength(JSON.stringify(compressed))<=3500);
  const {gunzipSync}=await import('node:zlib');assert.equal(gunzipSync(Buffer.from(compressed.data.notice_body_gzip,'base64')).toString(),many);
 });
+
+
+test('IPO reminders retain 15:00 KST alert and expire at 16:00, with safe console fallback',async()=>{
+ const now=Date.parse('2026-10-20T14:00:00+09:00'),remindAt=Date.parse('2026-10-20T15:00:00+09:00'),endAt=remindAt+3600000;
+ const data={...valid(),title:'공모주 청약 마감',remindAt,endAt};
+ const result=await message(data,now);
+ assert.equal(result.data.remindAt,String(remindAt));assert.equal(result.data.endAt,String(endAt));assert.equal(result.android.ttl,'3600s');assert.equal(result.notification,undefined);
+ const {prepareConsole}=await import('../admin/compose.js');const preview=await prepareConsole(data,[],now);
+ assert.equal(preview.fields.endAt,String(endAt));assert.equal(preview.fields.remindAt,String(remindAt));assert.equal(preview.fields.eventId,data.eventId);assert.equal(preview.fields.event_message,undefined);
+ for(const endAt of [null,'bad',NaN,remindAt,remindAt-1,now+367*86400000]){
+  await assert.rejects(()=>message({...data,endAt},now));
+  await assert.rejects(()=>prepareConsole({...data,endAt},[],now));
+ }
+ await assert.rejects(()=>message(data,remindAt));
+ const legacy=await message({...valid(),remindAt},now);assert.equal(legacy.data.endAt,String(remindAt+86400000));
+});

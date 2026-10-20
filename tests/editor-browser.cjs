@@ -16,6 +16,10 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
  assert.equal(sent.length,1);assert.equal(sent[0].kind,'links');assert.equal(sent[0].remindAt,undefined);assert.ok(sent[0].eventId);assert.ok(sent[0].body.includes('eventId=one&x=2'));
  await page.locator('#cancel').click();await page.locator('#save').click();await page.locator('#tab-event').click();await page.locator('#restore').click();assert(await page.locator('#form-links').isVisible());
  await page.locator('#tab-links').focus();await page.keyboard.press('ArrowRight');assert(await page.locator('#form-rec').isVisible());
+ await page.locator('#tab-ipo').click();assert(await page.locator('#form-ipo').isVisible());await page.locator('#ipo-day').fill('2020-01-01');await page.locator('#review').click();assert(!(await page.locator('#confirm').isVisible()));
+ const day=new Date(Date.now()+86400000+9*3600000).toISOString().slice(0,10);await page.locator('#ipo-day').fill(day);await page.locator('#review').click();assert((await page.locator('#confirm-summary').textContent()).includes('오후 4시'));await page.locator('#send').click();const ipo=sent.at(-1);assert.equal(ipo.kind,'event');assert.equal(ipo.remindAt,Date.parse(day+'T15:00:00+09:00'));assert.equal(ipo.endAt,ipo.remindAt+3600000);
+ await page.locator('#cancel').click();await page.locator('#save').click();await page.locator('#tab-event').click();await page.locator('#restore').click();assert(await page.locator('#form-ipo').isVisible());
+ await page.screenshot({path:'/private/tmp/ipo-web.png',fullPage:true});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
- console.log('PASS: mobile link tab, date-free payload, fake authenticated send, link draft restore, four-tab keyboard navigation. No real push sent.');
+ console.log('PASS: mobile link tab, date-free payload, fake authenticated send, link draft restore, five-tab keyboard navigation and IPO expiry. No real push sent.');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});

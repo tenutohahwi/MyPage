@@ -20,6 +20,11 @@ export function prepareNotice(input){
  if(new TextEncoder().encode(body).length>24000)throw Error('공지 내용이 길어요. 본문을 줄여 주세요.');
  return {title,body:notificationBody,fields};
 }
+export function eventEndAt(input,now=Date.now()){
+ const end=input.endAt===undefined?(input.remindAt+86400000):input.endAt;
+ if(!Number.isSafeInteger(end)||end<=input.remindAt||end<=now||end>now+366*86400000)throw Error('마감 시간을 확인하세요.');
+ return end;
+}
 export async function prepareConsole(input,apps=[],now=Date.now()){
  if(input?.kind==='notice'||input?.kind==='links')return prepareNotice(input);
  const title=text(input.title,80,'푸시 제목',true),body=text(input.body,1000,'푸시 내용',true);
@@ -43,11 +48,16 @@ export async function prepareConsole(input,apps=[],now=Date.now()){
  }else if(input.kind==='event'){
   const at=input.remindAt;
   if(!Number.isSafeInteger(at)||at<=now||at>now+365*86400000)throw Error('1년 이내의 미래 날짜·시각을 입력해 주세요.');
+  const endAt=eventEndAt(input,now);
   const url=text(input.url??'',800,'참여 링크');if(url)linkIdentity(url);
   const korea=new Date(at+9*3600000).toISOString();
   const formatted=korea.slice(2,10).replaceAll('-','')+'-'+korea.slice(11,16)+' '+body+(url?'\n'+url:'');
   fields={event_message:formatted,event_title:title};if(url)fields.url=url;
   notificationBody=formatted;
+  if(input.endAt!==undefined){
+   if(typeof input.eventId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(input.eventId))throw Error('요청 번호를 확인하세요.');
+   fields={eventId:input.eventId,title,body,category:'이벤트',url,remindAt:String(at),endAt:String(endAt)};notificationBody=body;
+  }
  }else if(input.kind==='notice'){
   return prepareNotice(input);
  }else throw Error('작성 종류를 확인해 주세요.');
