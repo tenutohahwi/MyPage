@@ -4,6 +4,8 @@
 
 .privacy-main{max-width:760px;margin:auto}.privacy-main h1{font-size:clamp(2rem,5vw,3rem)}.policy-date{font-size:.875rem;color:#637084;margin:20px 0 0}.policy-content{padding:32px;background:#fff;border:1px solid #e0e5ed;border-radius:20px;overflow-wrap:anywhere}.policy-content>p:first-child{margin-top:0}.policy-content section{margin-top:32px}.policy-content h2{margin-bottom:12px}.policy-content p,.policy-content li,.policy-content dd{color:#4d5869;line-height:1.85}.policy-content p{margin:12px 0}.policy-content ul{padding-left:24px}.policy-content dl{display:grid;grid-template-columns:auto 1fr;gap:8px 20px}.policy-content dt{font-weight:650}.policy-content dd{margin:0}.policy-content a{color:#3456d6;text-decoration:underline;text-underline-offset:3px}.back-link{display:inline-block;margin-top:28px;font-size:.875rem;font-weight:650;color:#3456d6}@media(max-width:640px){.policy-content{padding:24px}.policy-content dl{grid-template-columns:1fr;gap:4px}.policy-content dd+dt{margin-top:8px}}
 
+.app-icons{display:flex;align-items:center;gap:12px;flex-shrink:0}
+
 /* Developer identity on the home page. */
 .home-page .wordmark{display:inline-flex;align-items:center;gap:10px}
 .home-page .wordmark img{display:block;border-radius:12px;flex-shrink:0}
