@@ -6,9 +6,9 @@
 
 .app-icons{display:flex;align-items:center;gap:12px;flex-shrink:0}
 
-.tester-link{align-self:flex-start;padding:8px 12px;border-radius:8px;background:#edf2ff;color:#3456d6}
-.tester-link span{color:inherit}
-@media(hover:hover){.tester-link:hover{background:#dfe8ff}}
+.card-action{align-self:flex-start;padding:8px 12px;border-radius:8px;background:#edf2ff;color:#3456d6}
+.card-action span{color:inherit}
+@media(hover:hover){.card-action:hover{background:#dfe8ff}}
 
 /* Developer identity on the home page. */
 .home-page .wordmark{display:inline-flex;align-items:center;gap:10px}
